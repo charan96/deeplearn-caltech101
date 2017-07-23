@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[6]:
-
-
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Dropout
 from keras.utils import np_utils
@@ -16,19 +10,11 @@ import cPickle as pickle
 import h5py as h5py
 import os
 
-
-# In[7]:
-
-
-# get_ipython().magic(u'matplotlib inline')
-
 # constants and hyperparameters
 wrk_dir = '/home/ramcharan/deeplearn/caltech/core'
 IMG_SIZE = 200
 NUM_CLASSES = 101
 
-
-# In[8]:
 
 def preprocess_img(img):
     try:
@@ -51,9 +37,7 @@ def preprocess_img(img):
     return img
 
 
-# In[9]:
-
-def get_img_and_classes():
+def build_img_and_classes():
     base_data_dir = '/home/ramcharan/deeplearn/caltech/core/data/categories/'
     
     images = {}
@@ -75,89 +59,63 @@ def get_img_and_classes():
     return images, classes
 
 
-# In[ ]:
+def load_images_classes():
+	if ('img_dict.p' not in os.listdir(wrk_dir)) or ('class_dict.p' not in os.listdir(wrk_dir)):
+		images, classes = build_img_and_classes()
+	else:
+		with open('img_dict.p', 'rb') as imd, open('class_dict.p', 'rb') as cld:
+			print 'Loading img_dict.p and classes_dict.p files...'
+			images = pickle.load(imd)
+			classes = pickle.load(cld)
+
+	return images, classes
 
 
+def get_train_test_data(images, classes):
+	x, y = [], []
+
+	for img_file in images.keys():
+		x.append(images[img_file])
+		y.append(classes[img_file])
+	    
+	x = np.array(x, dtype='float32')
+
+	str_uniq_list, int_coded_uniq_list = np.unique(y, return_inverse=True)
+	y = np_utils.to_categorical(int_coded_uniq_list, NUM_CLASSES)
+
+	x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
+
+	return x_train, x_test, y_train, y_test
 
 
+def build_model(x_train, x_test, y_train, y_test):
+	# TRANSFER_LEARNING_SETUP
+	base_model = applications.VGG19(weights='imagenet', include_top=False, input_shape = (IMG_SIZE, IMG_SIZE, 3))
 
-# In[10]:
+	for layer in base_model.layers:
+		layer.trainable = False
+	    
+	full_model = Sequential()
+	full_model.add(base_model)
+	# full_model.add(Dense(512, input_shape=(6, 6, 512), activation='relu'))
 
+	full_model.add(Flatten())
+	full_model.add(Dense(256, activation='relu'))
+	full_model.add(Dense(256, activation='relu'))
+	full_model.add(Dropout(0.5))
+	full_model.add(Dense(NUM_CLASSES, activation='softmax'))
 
-if ('img_dict.p' not in os.listdir(wrk_dir)) or ('class_dict.p' not in os.listdir(wrk_dir)):
-    images, classes = get_img_and_classes()
-else:
-    with open('img_dict.p', 'rb') as imd, open('class_dict.p', 'rb') as cld:
-	print 'loading img_dict'
-        images = pickle.load(imd)
-        classes = pickle.load(cld)
+	full_model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
-
-# In[11]:
-
-
-x, y = [], []
-
-for img_file in images.keys():
-    x.append(images[img_file])
-    y.append(classes[img_file])
-    
-x = np.array(x, dtype='float32')
-
-str_uniq_list, int_coded_uniq_list = np.unique(y, return_inverse=True)
-y = np_utils.to_categorical(int_coded_uniq_list, NUM_CLASSES)
-
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
+	full_model.fit(x_train, y_train, epochs=20, batch_size=16)
 
 
-# In[19]:
+def main():
+	images, classes = load_images_classes()
+	x_train, x_test, y_train, y_test = get_train_test_data(images, classes)
+	
+	build_model(x_train, x_test, y_train, y_test)
 
 
-# hehe = applications.VGG19(weights='imagenet', include_top=True)
-# haha = applications.VGG19(weights='imagenet', include_top=False, input_shape=(IMG_SIZE, IMG_SIZE, 3))
-
-# for layer in hehe.layers:
-#    print layer.name, layer.output_shape
-    
-# for layer in haha.layers:
-#     print layer.name, layer.output_shape
-
-
-# In[ ]:
-
-
-# def setup_for_transfer_learning():
-# TRANSFER_LEARNING_SETUP
-
-base_model = applications.VGG19(weights='imagenet', include_top=False, input_shape = (IMG_SIZE, IMG_SIZE, 3))
-
-for layer in base_model.layers:
-    layer.trainable = False
-    
-full_model = Sequential()
-full_model.add(base_model)
-# full_model.add(Dense(512, input_shape=(6, 6, 512), activation='relu'))
-
-full_model.add(Flatten())
-full_model.add(Dense(256, activation='relu'))
-full_model.add(Dense(256, activation='relu'))
-full_model.add(Dropout(0.5))
-full_model.add(Dense(NUM_CLASSES, activation='softmax'))
-
-full_model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
-
-full_model.fit(x_train, y_train, epochs=20, batch_size=16)
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
+if __name__ == "__main__":
+	main()
