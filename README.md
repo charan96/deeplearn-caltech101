@@ -73,3 +73,8 @@ Epoch 19/20
 
 Epoch 20/20
 6073/6073 [==============================] - 909s - loss: 0.2041 - acc: 0.9488
+
+## Running
+pip install -r requirements.txt
+
+python2.7 caltech_convnet.py
