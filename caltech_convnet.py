@@ -17,46 +17,46 @@ NUM_CLASSES = 101
 
 
 def preprocess_img(img):
-    try:
-        hsv = color.rgb2hsv(img)
-    except:
-        rgb_img = color.gray2rgb(img)
-        hsv = color.rgb2hsv(rgb_img)
+	try:
+		hsv = color.rgb2hsv(img)
+	except:
+		rgb_img = color.gray2rgb(img)
+		hsv = color.rgb2hsv(rgb_img)
         
-    hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
-    img = color.hsv2rgb(hsv)
+	hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
+	img = color.hsv2rgb(hsv)
+
+	min_side = min(img.shape[:-1])
+	center = img.shape[0] // 2, img.shape[1] // 2
+	img = img[center[0] - min_side // 2:center[0] + min_side // 2,
+		  center[1] - min_side // 2:center[1] + min_side // 2,
+		 :]
     
-    min_side = min(img.shape[:-1])
-    center = img.shape[0] // 2, img.shape[1] // 2
-    img = img[center[0] - min_side // 2:center[0] + min_side // 2,
-              center[1] - min_side // 2:center[1] + min_side // 2,
-              :]
+	img = transform.resize(img, (IMG_SIZE, IMG_SIZE))
     
-    img = transform.resize(img, (IMG_SIZE, IMG_SIZE))
-    
-    return img
+	return img
 
 
 def build_img_and_classes():
-    base_data_dir = '/home/ramcharan/deeplearn/caltech/core/data/categories/'
+	base_data_dir = '/home/ramcharan/deeplearn/caltech/core/data/categories/'
+
+	images = {}
+	classes = {}
+
+	categories = [categ for categ in os.listdir(base_data_dir)]
+	categories.remove('BACKGROUND_Google')
     
-    images = {}
-    classes = {}
-    
-    categories = [categ for categ in os.listdir(base_data_dir)]
-    categories.remove('BACKGROUND_Google')
-    
-    for category in categories:
-        for img_file in os.listdir(base_data_dir + category):
-            img = preprocess_img(io.imread(base_data_dir + category + '/' + img_file))
-            images[category + '/' + img_file] = img
-            classes[category + '/' + img_file] = category
+	for category in categories:
+		for img_file in os.listdir(base_data_dir + category):
+			img = preprocess_img(io.imread(base_data_dir + category + '/' + img_file))
+			images[category + '/' + img_file] = img
+			classes[category + '/' + img_file] = category
             
-    with open('img_dict.p', 'wb') as imd, open('class_dict.p', 'wb') as cld:
-        pickle.dump(images, imd, protocol=pickle.HIGHEST_PROTOCOL)
-        pickle.dump(classes, cld, protocol=pickle.HIGHEST_PROTOCOL)
+	with open('img_dict.p', 'wb') as imd, open('class_dict.p', 'wb') as cld:
+		pickle.dump(images, imd, protocol=pickle.HIGHEST_PROTOCOL)
+		pickle.dump(classes, cld, protocol=pickle.HIGHEST_PROTOCOL)
         
-    return images, classes
+	return images, classes
 
 
 def load_images_classes():
